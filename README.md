@@ -33,6 +33,7 @@ npm run deploy
 
 ## Links and handoff
 
+- [Public source](https://github.com/AaronStarrett/cpl-job-intake-cleaner)
 - [CPL portfolio](https://cpl-portfolio.pages.dev)
 - [Contact CPL](https://cpl-portfolio.pages.dev/#contact)
 - See [verification record](docs/VERIFICATION.md) for actual public repository, deployment, commit and checks; no proposed URL counts as deployment evidence.

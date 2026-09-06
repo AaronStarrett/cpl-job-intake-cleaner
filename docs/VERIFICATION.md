@@ -7,12 +7,14 @@
 - Domain tests: 86/86 passed (schema, evidence, dates, contacts, conflicts, follow-ups, corrections, fixture invalidation and exports).
 - Worker tests: 46/46 passed, including actual workerd SQLite concurrency and duplicate reservations, server input/protection failures, provider refusal/truncation/malformed output, and body/quota/provider deadlines. Provider calls in tests are synthetic mocks.
 - ESLint and TypeScript checks passed. Full release hooks additionally rerun the required checks before publication.
-- Desktop/mobile browser tests cover sample/edit/checklist/follow-up/download/reset, all fixtures without AI calls, hostile source text, keyboard, reduced motion, contrast, deep routes, API JSON errors, separate visitor state, printing and clipboard outputs. Final release results are recorded after the push gate.
-- Public-source scanner passed; explicit staged-file and history review required before the initial push.
+- Desktop/mobile browser tests: 20/20 passed in the initial push gate. They cover sample/edit/checklist/follow-up/download/reset, all fixtures without AI calls, hostile source text, keyboard, reduced motion, accessibility, deep routes, API JSON errors, separate visitor state, printing, clipboard outputs and mocked uncertain-request retry identity.
+- Public-source scanner and explicit staged-file/history review passed before the initial push.
 
 ## Publication status at this commit
 
-Public repository creation, Cloudflare upload, native Git-triggered build and portfolio integration have not yet been verified. The publication record will be updated only from actual results.
+Public repository verified: https://github.com/AaronStarrett/cpl-job-intake-cleaner (PUBLIC, main). Initial source commit: `da6e711206e65aeea41ba7cfb65149ca22e7c96c`.
+
+Native Workers Builds is connected to main. Its initial setup builds stopped before deployment: the privileged browser dependency installer was unavailable; the next attempt passed all 132 unit/Worker tests and the production build, then could not launch Chromium because the build image lacked an accessibility library. The browser dependency wrapper now prepares missing libraries inside the build workspace without root. A successful deployment and actual Git-triggered build remain to be recorded from their results. Portfolio publication awaits verified anonymous app access.
 
 ## Live AI status
 

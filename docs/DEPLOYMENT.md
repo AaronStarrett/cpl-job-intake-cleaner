@@ -14,11 +14,11 @@ The single Worker name must be `cpl-job-intake-cleaner`. Wrangler defines `INTAK
 
 Use the account's existing GitHub connection and the public `AaronStarrett/cpl-job-intake-cleaner` repository. Production branch: `main`. Root: `/`. Node version: `24.19.0`.
 
-- Build command: `npx playwright install --with-deps chromium`
-- Deploy command: `npm run deploy:builds`
+- Build command: `node scripts/builds-policy.mjs`
+- Deploy command: `node scripts/cloudflare-build.mjs`
 - Non-production branches: disable auto-deployment initially. If separately enabled, use sample-only configuration and never inject production secrets into untrusted pull-request builds.
 
-Set the production build variable `CPL_DEPLOY_TARGET=production`. The deploy script verifies that native Workers Builds reports `WORKERS_CI=1`, branch `main`, and a commit matching clean checked-out source. These commands are sequential stages of the same native build. A failed typecheck, lint, unit/SQLite test, production build, Playwright test or source scan fails the build, preventing the deploy stage. Do not configure separately running tests as the only deployment gate. Set no GitHub Actions workflow for this project. No billable GitHub Actions are added.
+Set the production build variable `CPL_DEPLOY_TARGET=production`. The deploy script verifies that native Workers Builds reports `WORKERS_CI=1`, branch `main`, and a commit matching clean checked-out source. The Cloudflare wrapper prepares Chromium and missing Ubuntu libraries inside ignored build-local directories without root access, then invokes the complete `npm run deploy:builds` gate with those library paths. These commands are sequential stages of the same native build. A failed typecheck, lint, unit/SQLite test, production build, Playwright test or source scan fails the build, preventing Wrangler deployment. Do not configure separately running tests as the only deployment gate. Set no GitHub Actions workflow for this project. No billable GitHub Actions are added.
 
 Local release: `npm ci`, `npx playwright install chromium`, then `npm run deploy`. The script gates Wrangler behind full verification. `npm run deploy:builds` is an alternate single-command validation-and-deploy gate after Chromium installation.
 
