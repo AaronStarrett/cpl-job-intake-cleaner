@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync } from 'node:fs';
+import { copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -77,6 +77,42 @@ export function packagesForLibraries(libraries) {
   }))];
 }
 
+export function rootlessAptConfig(state, cache, logs) {
+  for (const directory of [state, cache, logs]) {
+    if (!directory.startsWith('/') || /["\\\r\n]/.test(directory)) throw new Error('Invalid rootless APT directory.');
+  }
+  // -c loads this after system apt.conf fragments. Keep system sources/keyrings,
+  // redirect writable paths, and clear hooks that could target system locations.
+  return `Dir::State "${state}";
+Dir::State::lists "${state}/lists";
+Dir::State::status "${state}/status";
+Dir::Cache "${cache}";
+Dir::Cache::archives "${cache}/archives";
+Dir::Cache::pkgcache "${cache}/pkgcache.bin";
+Dir::Cache::srcpkgcache "${cache}/srcpkgcache.bin";
+Dir::Log "${logs}";
+Dir::Log::Terminal "${logs}/term.log";
+Dir::Log::History "${logs}/history.log";
+Dir::Log::Planner "${logs}/planner.log";
+#clear APT::Update::Pre-Invoke;
+#clear APT::Update::Post-Invoke;
+#clear APT::Update::Post-Invoke-Success;
+#clear DPkg::Pre-Invoke;
+#clear DPkg::Post-Invoke;
+#clear DPkg::Pre-Install-Pkgs;
+APT::Get::AllowUnauthenticated "false";
+Acquire::AllowInsecureRepositories "false";
+Acquire::AllowDowngradeToInsecureRepositories "false";
+Acquire::Check-Valid-Until "true";
+Acquire::Retries "0";
+Acquire::http::Timeout "30";
+Acquire::https::Timeout "30";
+Acquire::Languages "none";
+Acquire::IndexTargets::deb::DEP-11::DefaultEnabled "false";
+APT::Update::Error-Mode "any";
+`;
+}
+
 function localDirectory(root, relative) {
   let current = root;
   for (const component of relative.split('/')) {
@@ -122,6 +158,25 @@ export function runCloudflareBuild() {
 
   const downloaded = new Set();
   const extracted = new Set();
+  let aptConfig;
+  const prepareAptIndexes = () => {
+    if (aptConfig) return aptConfig;
+    const state = localDirectory(root, 'work/browser-apt-state');
+    const cache = localDirectory(root, 'work/browser-apt-cache');
+    const logs = localDirectory(root, 'work/browser-apt-logs');
+    localDirectory(root, 'work/browser-apt-state/lists/partial');
+    localDirectory(root, 'work/browser-apt-cache/archives/partial');
+    // A read-only snapshot makes every APT state path local to this build.
+    copyFileSync('/var/lib/dpkg/status', path.join(state, 'status'));
+    aptConfig = path.join(state, 'apt.conf');
+    writeFileSync(aptConfig, rootlessAptConfig(state, cache, logs), { mode: 0o600 });
+    console.log('Refreshing authenticated package indexes into the build workspace.');
+    run('apt-get', ['-c', aptConfig, 'update'], { timeout: 180_000 });
+    const listFiles = readdirSync(path.join(state, 'lists'), { withFileTypes: true }).filter((entry) => entry.isFile());
+    const totalBytes = listFiles.reduce((total, entry) => total + statSync(path.join(state, 'lists', entry.name)).size, 0);
+    if (listFiles.length > 200 || totalBytes > 512 * 1024 * 1024) throw new Error('Browser package indexes exceeded their bound.');
+    return aptConfig;
+  };
   const inspect = () => missingLibraries(run('ldd', [executable], { stdio: ['ignore', 'pipe', 'pipe'], timeout: 15_000 }));
   for (let pass = 0; pass < 4; pass++) {
     const missing = inspect();
@@ -131,7 +186,7 @@ export function runCloudflareBuild() {
     console.log(`Browser dependency pass ${pass + 1}: ${packages.join(', ')}`);
     // APT authenticates packages from the image's configured distro repositories.
     // download writes archives only; dpkg-deb extracts files without running install scripts.
-    run('apt-get', ['-o', 'Acquire::Retries=0', '-o', 'Acquire::http::Timeout=30', '-o', 'Acquire::https::Timeout=30', 'download', ...packages.map((name) => `${name}:amd64`)], { cwd: debs, timeout: 90_000 });
+    run('apt-get', ['-c', prepareAptIndexes(), 'download', ...packages.map((name) => `${name}:amd64`)], { cwd: debs, timeout: 90_000 });
     for (const name of packages) downloaded.add(name);
     const archives = readdirSync(debs).filter((name) => name.endsWith('.deb'));
     if (archives.length > 32 || archives.reduce((total, name) => total + statSync(path.join(debs, name)).size, 0) > 150 * 1024 * 1024) throw new Error('Browser dependency archives exceeded their bound.');
