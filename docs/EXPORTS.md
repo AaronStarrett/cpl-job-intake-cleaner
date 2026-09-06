@@ -2,6 +2,8 @@
 
 All exports use the current edited job card. Unknown values are empty. No full raw message is included. Structured JSON retains short field evidence quotes, issues and extracted/user-entered status. Both formats include source mode, review status and warnings. A review acknowledgment is not an identity check, signature, booking or approval of work.
 
+Fictional sample exports remain explicitly labeled; bring-your-own-key exports contain the current job card and never the connection key, and visitors control retention of downloaded files and clipboard copies.
+
 CSV is UTF-8, one header row and one data row, generated with PapaParse. Every cell is quoted, embedded quotes are doubled, and CRLF separates records. Commas, Unicode and line breaks are preserved. Before serialization, a literal apostrophe is added when a cell begins with `=`, `+`, `-` or `@` after whitespace/control/format characters, or begins with tab/newline. This deliberately includes international phone numbers beginning with `+`. Spreadsheet software may display the apostrophe as text; do not remove it before importing untrusted content. Plain CSV quoting does not neutralize formulas.
 
 Stable v1 headers in order:

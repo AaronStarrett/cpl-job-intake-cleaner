@@ -8,7 +8,6 @@ export interface Env {
   INTAKE_QUOTA?: DurableObjectNamespace;
   ENABLE_LIVE_AI?: string;
   OPENAI_MODEL?: string;
-  OPENAI_API_KEY?: string;
   TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
   TURNSTILE_EXPECTED_HOSTNAME?: string;
@@ -74,14 +73,14 @@ export function allowedOrigins(env: Env): string[] {
 
 export function liveReadiness(env: Env, origin: string): { enabled: boolean; reason: string | null } {
   const unavailable = (reason: string) => ({ enabled: false, reason });
-  if (env.ENABLE_LIVE_AI !== 'true') return unavailable('Live AI is not enabled for this public demo. You can use all six fictional examples.');
-  try { readLimits(env); } catch { return unavailable('Live AI is temporarily unavailable. Your text stays in the editor; examples are available.'); }
-  if (!env.OPENAI_API_KEY || !SUPPORTED_MODELS.includes(env.OPENAI_MODEL as typeof SUPPORTED_MODELS[number])) {
-    return unavailable('Live AI is awaiting its approved provider configuration. Examples are available.');
+  if (env.ENABLE_LIVE_AI !== 'true') return unavailable('Request processing is not available yet. You can enter your message, but it cannot be organized until the service is configured.');
+  try { readLimits(env); } catch { return unavailable('Request processing is temporarily unavailable. Your text stays in the editor. Please try again later.'); }
+  if (!SUPPORTED_MODELS.includes(env.OPENAI_MODEL as typeof SUPPORTED_MODELS[number])) {
+    return unavailable('Request processing is awaiting its approved provider configuration. Your text stays in the editor.');
   }
   const hostname = new URL(origin).hostname;
   if (!env.TURNSTILE_SITE_KEY || !env.TURNSTILE_SECRET_KEY || env.TURNSTILE_EXPECTED_HOSTNAME !== hostname || !allowedOrigins(env).includes(origin) || !env.QUOTA_HASH_SECRET || env.QUOTA_HASH_SECRET.length < 32 || !env.INTAKE_QUOTA) {
-    return unavailable('Live AI protection is not configured for this address. Examples are available.');
+    return unavailable('Request processing is unavailable because its protection is not configured for this address. Your text stays in the editor.');
   }
   return { enabled: true, reason: null };
 }
@@ -89,8 +88,9 @@ export function liveReadiness(env: Env, origin: string): { enabled: boolean; rea
 export function publicConfig(env: Env, origin: string) {
   const ready = liveReadiness(env, origin);
   let maxInputChars = 8_000;
-  try { maxInputChars = readLimits(env).maxInputChars; } catch { /* Keep examples usable. */ }
+  try { maxInputChars = readLimits(env).maxInputChars; } catch { /* Keep the editor usable while processing fails closed. */ }
   return {
+    keyMode: 'bring-your-own' as const,
     liveEnabled: ready.enabled,
     unavailableReason: ready.reason,
     turnstileSiteKey: ready.enabled ? env.TURNSTILE_SITE_KEY : null,

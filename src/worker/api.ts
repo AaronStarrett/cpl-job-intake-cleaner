@@ -1,10 +1,12 @@
 import { z } from 'zod';
 import { SOURCE_LABELS, TRADE_HINTS } from '../shared/schema';
+import { isApiKeyFormat } from '../shared/connection';
 import { type Env, allowedOrigins, liveReadiness, publicConfig, readLimits } from './config';
 import { ApiError, errorResponse, json, readBoundedText, withDeadline } from './http';
 import { extractWithOpenAI, type FetchLike, verifyTurnstile } from './provider';
 
 const submissionSchema = z.object({
+  apiKey: z.string().max(512).refine(isApiKeyFormat),
   sourceText: z.string().min(1).max(8_000).refine((text) => text.trim().length > 0),
   sourceLabel: z.enum(SOURCE_LABELS),
   tradeHint: z.enum(TRADE_HINTS),
@@ -17,7 +19,7 @@ export const API_DEADLINES = { body: 5_000, quotaHealth: 3_000, quotaReserve: 4_
 /** Covers both the internal fetch and its bounded JSON body. No retry after uncertainty. */
 async function quotaRequest(stub: DurableObjectStub, path: '/health' | '/reserve' | '/release', body: unknown, timeoutMs: number) {
   const controller = new AbortController();
-  const failure = new ApiError('QUOTA_TIMEOUT', 503, 'Live usage protection took too long to respond. No new AI request was started; please use an example for now.');
+  const failure = new ApiError('QUOTA_TIMEOUT', 503, 'Usage protection took too long to respond. No new AI request was started. Your text has been retained; please try again later.');
   const operation = (async () => {
     const response = await stub.fetch(`https://quota.internal${path}`, { method: 'POST', body: JSON.stringify(body), signal: controller.signal });
     if (controller.signal.aborted) {
@@ -43,7 +45,7 @@ export async function clientHashes(ip: string, secret: string, now = Date.now())
 }
 
 function quotaStub(env: Env): DurableObjectStub {
-  if (!env.INTAKE_QUOTA) throw new ApiError('QUOTA_UNAVAILABLE', 503, 'Live usage protection is unavailable. Please use an example for now.');
+  if (!env.INTAKE_QUOTA) throw new ApiError('QUOTA_UNAVAILABLE', 503, 'Usage protection is unavailable. Your text has been retained; please try again later.');
   return env.INTAKE_QUOTA.get(env.INTAKE_QUOTA.idFromName('global-intake-quota-v1'));
 }
 
@@ -54,14 +56,14 @@ async function reserve(stub: DurableObjectStub, requestId: string, hashes: [stri
     if (response.status === 409 && result.code === 'DUPLICATE_REQUEST') throw new ApiError('DUPLICATE_REQUEST', 409, 'This submission was already processed or is still running. No second AI request was made.');
     if (response.status === 429 && ['DAILY_LIMIT', 'CLIENT_LIMIT', 'BUSY'].includes(result.code ?? '')) {
       const messages: Record<string, string> = {
-        DAILY_LIMIT: 'Today’s live demo allowance has been used. The fictional examples remain available.',
-        CLIENT_LIMIT: 'You have reached the live demo limit for now. Please use an example or try again later.',
+        DAILY_LIMIT: 'Today’s processing allowance has been used. Your text has been retained. Please try again after the daily limit resets.',
+        CLIENT_LIMIT: 'You have reached the processing limit for now. Your text has been retained. Please try again later.',
         BUSY: 'Live extraction is busy. Please wait a moment before trying again.',
       };
       throw new ApiError(result.code!, 429, messages[result.code!], Number.isInteger(result.retryAfter) && result.retryAfter! > 0 ? Math.min(result.retryAfter!, 86_400) : 60);
     }
   } catch (error) { if (error instanceof ApiError) throw error; }
-  throw new ApiError('QUOTA_UNAVAILABLE', 503, 'Live usage protection is unavailable. Please use an example for now.');
+  throw new ApiError('QUOTA_UNAVAILABLE', 503, 'Usage protection is unavailable. Your text has been retained; please try again later.');
 }
 
 export async function handleApi(request: Request, env: Env, fetcher: FetchLike = fetch): Promise<Response> {
@@ -78,7 +80,7 @@ export async function handleApi(request: Request, env: Env, fetcher: FetchLike =
         } catch {
           config.liveEnabled = false;
           config.turnstileSiteKey = null;
-          config.unavailableReason = 'Live usage protection is unavailable. The fictional examples remain available.';
+          config.unavailableReason = 'Usage protection is unavailable. Your text stays in the editor. Please try again later.';
         }
       }
       return json(config);
@@ -102,12 +104,13 @@ export async function handleApi(request: Request, env: Env, fetcher: FetchLike =
       throw new ApiError('INVALID_INPUT', 400, 'The request could not be read. Please check the text and selections.');
     }
     const parsed = submissionSchema.safeParse(raw);
+    if (!parsed.success && parsed.error.issues.some((issue) => issue.path[0] === 'apiKey')) throw new ApiError('INVALID_API_KEY', 400, 'Connect a valid-format OpenAI API key in Settings before organizing a request.');
     if (!parsed.success || parsed.data.sourceText.length > limits.maxInputChars) throw new ApiError('INVALID_INPUT', 400, 'Please provide up to 8,000 characters and valid request selections.');
     const input = parsed.data;
     requestId = input.requestId.toLowerCase();
     // Cloudflare overwrites this header at its edge. Local live use fails closed without it.
     const ip = request.headers.get('CF-Connecting-IP');
-    if (!ip || ip.length > 64 || !/^[0-9a-f:.]+$/i.test(ip)) throw new ApiError('CLIENT_UNAVAILABLE', 503, 'Live usage protection could not identify this connection. Please use an example.');
+    if (!ip || ip.length > 64 || !/^[0-9a-f:.]+$/i.test(ip)) throw new ApiError('CLIENT_UNAVAILABLE', 503, 'Usage protection could not identify this connection. Your text has been retained. Please try again later.');
     await verifyTurnstile(input.turnstileToken, env, fetcher);
     const hashes = await clientHashes(ip, env.QUOTA_HASH_SECRET!);
     const stub = quotaStub(env);

@@ -40,6 +40,7 @@ export function Turnstile({ siteKey, action, onToken }: {
 }) {
   const container = useRef<HTMLDivElement>(null);
   const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let cancelled = false;
     let widget: string | undefined;
@@ -48,18 +49,18 @@ export function Turnstile({ siteKey, action, onToken }: {
       if (cancelled || !container.current || !window.turnstile) return;
       widget = window.turnstile.render(container.current, {
         sitekey: siteKey, action, theme: 'light', size: 'flexible',
-        callback: (token) => { setError(false); onToken(token); },
-        'expired-callback': () => onToken(null),
-        'error-callback': () => { setError(true); onToken(null); },
+        callback: (token) => { if (!cancelled) { setError(false); onToken(token); } },
+        'expired-callback': () => { if (!cancelled) onToken(null); },
+        'error-callback': () => { if (!cancelled) { setError(true); onToken(null); } },
       });
     }).catch(() => { if (!cancelled) setError(true); });
     return () => {
       cancelled = true;
       if (widget !== undefined && window.turnstile) window.turnstile.remove(widget);
     };
-  }, [siteKey, action, onToken]);
+  }, [siteKey, action, onToken, attempt]);
   return <div className="verification-widget">
     <div ref={container} />
-    {error && <p className="error-text" role="alert">Security verification could not load. Check your connection or use a fictional example.</p>}
+    {error && <><p className="error-text" role="alert">Security verification could not load. Check your connection and try again. Your text has been retained.</p><button className="text-button" onClick={() => { setError(false); setAttempt((value) => value + 1); }}>Retry verification</button></>}
   </div>;
 }

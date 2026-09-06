@@ -101,3 +101,4 @@ export function loadExample(id: string, source?: string): JobRecord | null {
   if (!example || (source !== undefined && source !== example.source)) return null;
   return { ...validateExtraction(example.extraction, example.source, 'example'), fixtureId: example.id };
 }
+export function fixtureMatches(id: string, source: string): boolean { return EXAMPLES.some((example) => example.id === id && example.source === source); }

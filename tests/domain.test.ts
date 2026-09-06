@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import Papa from 'papaparse';
 import { createEmptyFields, FIELD_KEYS, jobRecordSchema, MODEL_JSON_SCHEMA, modelExtractionSchema, unambiguousDates, validateModelOutput, type Extraction, type FieldKey, type JobRecord } from '../src/shared/schema';
-import { EXAMPLES, loadExample } from '../src/shared/fixtures';
+import { EXAMPLES, fixtureMatches, loadExample } from '../src/shared/fixtures';
 import { evaluateRecord, isSufficientRawAddress, isUsableEmail, isUsablePhone } from '../src/shared/rules';
 import { generateFollowUp, refreshFollowUp } from '../src/shared/followup';
-import { changeSource, fixtureMatches, setReview, sourceChanged, updateField } from '../src/shared/state';
+import { changeSource, setReview, sourceChanged, updateField } from '../src/shared/state';
 import { CSV_HEADERS, exportCsv, exportJson, formatJobCard, spreadsheetSafe } from '../src/shared/exports';
 
 const sample = (id = 'roofing'): JobRecord => {

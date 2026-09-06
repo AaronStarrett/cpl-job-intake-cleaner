@@ -4,6 +4,10 @@ import { liveReadiness, publicConfig, readLimits, type Env } from '../src/worker
 import { readBoundedText } from '../src/worker/http';
 import { extractWithOpenAI, parseProviderResponse, EXTRACTION_INSTRUCTIONS, type FetchLike } from '../src/worker/provider';
 import { createEmptyFields } from '../src/shared/schema';
+import { isApiKeyFormat } from '../src/shared/connection';
+import { novelIntake } from './novel-intake';
+
+const TEST_API_KEY = 'sk-' + 'S'.repeat(36);
 
 const source = 'Jordan Example needs a ceiling fan replaced. Call +1 (202) 555-0117.';
 function extraction(text = source) {
@@ -16,7 +20,7 @@ function providerResult(text = source) {
 }
 function environment(quotaFetch: (url: string, init?: RequestInit) => Promise<Response> = async (url) => Response.json(url.endsWith('/reserve') ? { code: 'RESERVED' } : { ok: true })): Env {
   return {
-    ENABLE_LIVE_AI: 'true', OPENAI_MODEL: 'gpt-6-astra', OPENAI_API_KEY: 'synthetic-test-key',
+    ENABLE_LIVE_AI: 'true', OPENAI_MODEL: 'gpt-6-astra',
     TURNSTILE_SITE_KEY: 'synthetic-site-key', TURNSTILE_SECRET_KEY: 'synthetic-secret', TURNSTILE_EXPECTED_HOSTNAME: 'demo.example',
     ALLOWED_ORIGINS: 'https://demo.example', QUOTA_HASH_SECRET: 'synthetic-test-hash-secret-32-characters',
     INTAKE_QUOTA: { idFromName: vi.fn(() => 'singleton'), get: vi.fn(() => ({ fetch: quotaFetch })) } as unknown as DurableObjectNamespace,
@@ -25,7 +29,7 @@ function environment(quotaFetch: (url: string, init?: RequestInit) => Promise<Re
 function request(overrides: Record<string, unknown> = {}, headers: Record<string, string> = {}) {
   return new Request('https://demo.example/api/analyze', {
     method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'https://demo.example', 'CF-Connecting-IP': '192.0.2.10', ...headers },
-    body: JSON.stringify({ sourceText: source, sourceLabel: 'phone notes', tradeHint: 'Auto-detect', turnstileToken: 'synthetic-token', requestId: crypto.randomUUID(), ...overrides }),
+    body: JSON.stringify({ apiKey: TEST_API_KEY, sourceText: source, sourceLabel: 'phone notes', tradeHint: 'Auto-detect', turnstileToken: 'synthetic-token', requestId: crypto.randomUUID(), ...overrides }),
   });
 }
 function upstream(text = source): FetchLike {
@@ -46,7 +50,7 @@ describe('configuration and HTTP boundaries', () => {
     expect(response.status).toBe(503); expect(fetcher).not.toHaveBeenCalled();
     expect(await response.json()).toMatchObject({ error: { code: 'LIVE_DISABLED' } });
   });
-  it.each(['OPENAI_API_KEY', 'OPENAI_MODEL', 'TURNSTILE_SITE_KEY', 'TURNSTILE_SECRET_KEY', 'TURNSTILE_EXPECTED_HOSTNAME', 'ALLOWED_ORIGINS', 'QUOTA_HASH_SECRET', 'INTAKE_QUOTA'] as const)('requires prerequisite %s', (key) => {
+  it.each(['OPENAI_MODEL', 'TURNSTILE_SITE_KEY', 'TURNSTILE_SECRET_KEY', 'TURNSTILE_EXPECTED_HOSTNAME', 'ALLOWED_ORIGINS', 'QUOTA_HASH_SECRET', 'INTAKE_QUOTA'] as const)('requires prerequisite %s', (key) => {
     const env = environment(); delete env[key];
     expect(liveReadiness(env, 'https://demo.example').enabled).toBe(false);
   });
@@ -142,18 +146,18 @@ describe('challenge, authoritative reservation and provider safety', () => {
   it('bounds timeout and never retries provider calls', async () => {
     vi.useFakeTimers();
     const fetcher: FetchLike = vi.fn((_url, init) => new Promise<Response>((_resolve, reject) => { init?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError'))); }));
-    const promise = extractWithOpenAI({ sourceText: source, sourceLabel: 'phone notes', tradeHint: 'Auto-detect' }, environment(), { ...readLimits({}), timeoutMs: 1000 }, fetcher);
+    const promise = extractWithOpenAI({ apiKey: TEST_API_KEY, sourceText: source, sourceLabel: 'phone notes', tradeHint: 'Auto-detect' }, environment(), { ...readLimits({}), timeoutMs: 1000 }, fetcher);
     const assertion = expect(promise).rejects.toMatchObject({ code: 'PROVIDER_TIMEOUT' });
     await vi.advanceTimersByTimeAsync(1001); await assertion; expect(fetcher).toHaveBeenCalledTimes(1);
   });
   it('sanitizes unsupported provider configuration without a fallback model or retry', async () => {
     const fetcher = vi.fn(async () => new Response('private provider details', { status: 400 }));
-    await expect(extractWithOpenAI({ sourceText: source, sourceLabel: 'phone notes', tradeHint: 'Auto-detect' }, environment(), readLimits({}), fetcher)).rejects.toMatchObject({ code: 'PROVIDER_UNSUPPORTED_CONFIGURATION', status: 503 });
+    await expect(extractWithOpenAI({ apiKey: TEST_API_KEY, sourceText: source, sourceLabel: 'phone notes', tradeHint: 'Auto-detect' }, environment(), readLimits({}), fetcher)).rejects.toMatchObject({ code: 'PROVIDER_UNSUPPORTED_CONFIGURATION', status: 503 });
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
   it('rejects oversized provider output instead of exposing it or returning a partial draft', async () => {
     const fetcher = vi.fn(async () => new Response('x'.repeat(160_001)));
-    await expect(extractWithOpenAI({ sourceText: source, sourceLabel: 'phone notes', tradeHint: 'Auto-detect' }, environment(), readLimits({}), fetcher)).rejects.toMatchObject({ code: 'PROVIDER_INVALID_RESPONSE', status: 502 });
+    await expect(extractWithOpenAI({ apiKey: TEST_API_KEY, sourceText: source, sourceLabel: 'phone notes', tradeHint: 'Auto-detect' }, environment(), readLimits({}), fetcher)).rejects.toMatchObject({ code: 'PROVIDER_INVALID_RESPONSE', status: 502 });
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 });
@@ -250,5 +254,92 @@ describe('bounded inbound and durable-storage waits', () => {
     const response = await pending;
     expect(response.status).toBe(200); expect(await response.json()).toMatchObject({ mode: 'live', record: { reviewed: false } });
     expect(quota).toHaveBeenCalledTimes(2); expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('visitor-owned key isolation and arbitrary request processing', () => {
+  it('advertises guarded BYOK capability without requiring or exposing an owner key', () => {
+    const config = publicConfig(environment(), 'https://demo.example');
+    expect(config.liveEnabled).toBe(true);
+    expect(config.keyMode).toBe('bring-your-own');
+    expect(JSON.stringify(config)).not.toContain(TEST_API_KEY);
+    expect(config).not.toHaveProperty('apiKey');
+    expect(config).not.toHaveProperty('OPENAI_API_KEY');
+  });
+  it.each([undefined, null, '', 'not-a-key', 'sk-short', 'sk-' + 'a'.repeat(510), 'sk-' + 'a'.repeat(20) + '\n'])('rejects malformed/missing request key before challenge or provider: %j', async (apiKey) => {
+    const fetcher = upstream();
+    const result = await handleApi(request({ apiKey }), environment(), fetcher);
+    expect(result.status).toBe(400);
+    expect(await result.json()).toMatchObject({ error: { code: 'INVALID_API_KEY' } });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+  it('uses the same bounded format rule as Settings without claiming key validation', () => {
+    expect(isApiKeyFormat(TEST_API_KEY)).toBe(true);
+    expect(isApiKeyFormat('sk-' + 'a'.repeat(509))).toBe(true);
+    expect(isApiKeyFormat({ key: TEST_API_KEY })).toBe(false);
+    expect(isApiKeyFormat(' ' + TEST_API_KEY)).toBe(false);
+  });
+  it('uses only each transient request key and never sends it to model text, Turnstile, quota, responses, or logs', async () => {
+    const alternateKey = 'sk-' + 'T'.repeat(36);
+    const ownerKey = 'sk-' + 'U'.repeat(36);
+    const first = novelIntake();
+    const second = novelIntake({ name: 'Noor Calder', service: 'Repair the west garden gate', phone: '+1 (202) 555-0194', address: '62 Testing Road, Sampleton, NY 10001' });
+    const providerInputs: { key: string; sourceText: string }[] = [];
+    const persistent: string[] = [];
+    const env = Object.assign(environment(async (url, init) => { persistent.push(String(init?.body)); return Response.json(url.endsWith('/reserve') ? { code: 'RESERVED' } : { ok: true }); }), { OPENAI_API_KEY: ownerKey });
+    const fetcher: FetchLike = vi.fn(async (url, init) => {
+      const wire = String(init?.body);
+      expect(wire).not.toContain(TEST_API_KEY); expect(wire).not.toContain(alternateKey); expect(wire).not.toContain(ownerKey);
+      if (String(url).includes('siteverify')) return Response.json({ success: true, hostname: 'demo.example', action: 'intake-analyze' });
+      const input = JSON.parse(JSON.parse(wire).input[0].content[0].text);
+      const authorization = new Headers(init?.headers).get('Authorization')!;
+      providerInputs.push({ key: authorization, sourceText: input.sourceText });
+      const match = [first, second].find((item) => item.message === input.sourceText);
+      expect(match).toBeDefined();
+      return Response.json({ status: 'completed', output: [{ type: 'message', role: 'assistant', content: [{ type: 'output_text', text: JSON.stringify(match!.extraction) }] }] });
+    });
+    const log = vi.spyOn(console, 'log'); const warn = vi.spyOn(console, 'warn'); const error = vi.spyOn(console, 'error');
+    const results = await Promise.all([
+      handleApi(request({ sourceText: first.message, apiKey: TEST_API_KEY }), env, fetcher),
+      handleApi(request({ sourceText: second.message, apiKey: alternateKey }), env, fetcher),
+    ]);
+    expect(results.map((result) => result.status)).toEqual([200, 200]);
+    const bodies = await Promise.all(results.map((result) => result.json())) as { record: { fields: { contactName: { value: string }; requestedDate: { value: string | null } }; reviewed: boolean; sourceMode: string } }[];
+    expect(bodies[0].record.fields.contactName.value).toBe('Emery Solis');
+    expect(bodies[1].record.fields.contactName.value).toBe('Noor Calder');
+    expect(bodies[0].record.fields.requestedDate.value).toBeNull();
+    expect(bodies.every((body) => body.record.sourceMode === 'live' && !body.record.reviewed)).toBe(true);
+    expect(providerInputs).toEqual(expect.arrayContaining([{ key: `Bearer ${TEST_API_KEY}`, sourceText: first.message }, { key: `Bearer ${alternateKey}`, sourceText: second.message }]));
+    const outsideHeaders = JSON.stringify({ bodies, persistent });
+    for (const key of [TEST_API_KEY, alternateKey, ownerKey]) expect(outsideHeaders).not.toContain(key);
+    expect(log).not.toHaveBeenCalled(); expect(warn).not.toHaveBeenCalled(); expect(error).not.toHaveBeenCalled();
+  });
+  it.each([{ upstreamStatus: 401, code: 'PROVIDER_KEY_REJECTED', status: 403 }, { upstreamStatus: 403, code: 'PROVIDER_KEY_REJECTED', status: 403 }, { upstreamStatus: 429, code: 'PROVIDER_RATE_LIMIT', status: 429 }])('returns sanitized key/usage errors without a prepared fallback: %j', async ({ upstreamStatus, code, status }) => {
+    const fetcher: FetchLike = vi.fn(async (url) => String(url).includes('siteverify') ? Response.json({ success: true, hostname: 'demo.example', action: 'intake-analyze' }) : new Response(`private error including ${TEST_API_KEY}`, { status: upstreamStatus }));
+    const response = await handleApi(request({ sourceText: novelIntake().message }), environment(), fetcher);
+    expect(response.status).toBe(status);
+    const body = await response.json() as { error: { code: string }; record?: unknown };
+    expect(body.error.code).toBe(code); expect(body.record).toBeUndefined();
+    expect(JSON.stringify(body)).not.toContain(TEST_API_KEY);
+    expect(JSON.stringify(body)).not.toMatch(/fictional example|prepared result|demo allowance/i);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('provider deadlines remain authoritative', () => {
+  it('settles even if the provider fetch ignores its AbortSignal', async () => {
+    vi.useFakeTimers();
+    const fetcher: FetchLike = vi.fn(() => new Promise<Response>(() => undefined));
+    const pending = extractWithOpenAI({ apiKey: TEST_API_KEY, sourceText: source, sourceLabel: 'other', tradeHint: 'Auto-detect' }, environment(), { ...readLimits({}), timeoutMs: 1000 }, fetcher);
+    const assertion = expect(pending).rejects.toMatchObject({ code: 'PROVIDER_TIMEOUT', status: 504 });
+    await vi.advanceTimersByTimeAsync(1001); await assertion; expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+  it('settles after a stalled provider body whose cancellation also stalls', async () => {
+    vi.useFakeTimers();
+    const cancel = vi.fn(() => new Promise<void>(() => undefined));
+    const fetcher: FetchLike = vi.fn(async () => new Response(new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode('{')); }, cancel })));
+    const pending = extractWithOpenAI({ apiKey: TEST_API_KEY, sourceText: source, sourceLabel: 'other', tradeHint: 'Auto-detect' }, environment(), { ...readLimits({}), timeoutMs: 1000 }, fetcher);
+    const assertion = expect(pending).rejects.toMatchObject({ code: 'PROVIDER_TIMEOUT', status: 504 });
+    await vi.advanceTimersByTimeAsync(1001); await assertion; expect(fetcher).toHaveBeenCalledTimes(1); expect(cancel).toHaveBeenCalledTimes(1);
   });
 });

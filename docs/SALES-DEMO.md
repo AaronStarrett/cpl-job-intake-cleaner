@@ -1,21 +1,24 @@
-# Sales demo for Paul
+# Paul's walkthrough
 
-1. Open the public app and point out the example-mode label. Every scenario is fictional, and this path makes no live AI call.
-2. Load the electrical sample and show its exact message. Choose the prepared-results action. Point to the missing service address and ambiguous “Friday”.
-3. Open a source-evidence indicator. It highlights the words behind a field. Explain that matching evidence supports review but is not proof of accuracy.
-4. Enter a fictional complete service address (for example `123 Example Lane, Exampleton, CA 90001`). The required-check count updates immediately. The correction is labeled entered by user.
-5. Open Follow-up and refresh its questions. The address question disappears. Timing stays a recommended clarification. Edit the wording; refreshing afterward asks before replacing it.
-6. Acknowledge review after checking the current card. Edit one field again to demonstrate that acknowledgment resets. Download CSV and JSON or print the draft job card. These actions use the edited state.
-7. Try plumbing for conflicting details, HVAC for customer-stated urgency, handyman for several tasks at one property and the two-properties example for the split warning. Reset clears the work.
+The portfolio demonstrates; the application performs. Watch walkthrough opens the local fictional story. Open Job Intake Cleaner opens the independent hosted product; source code is secondary.
 
-The roofing fixture demonstrates a substantially complete request. No invented budget, diagnosis, insurance or benefit numbers are added.
+## Demonstrate without API charges
 
-## Customer discovery
+1. Open the portfolio story and point out its fictional, scripted label. Playback makes no live AI call. Pause, replay or step through captions; a plain-text explanation supports reduced motion.
+2. Show Casey Morgan's electrical request becoming a structured card. Missing address and ambiguous Friday wording remain unresolved.
+3. Correct the fictional address. The correction is user-entered; matching evidence supports review but is not proof of accuracy.
+4. Show the follow-up asking for remaining timing clarification, then export the current fictional card. Nothing is sent, scheduled or saved to a CRM.
 
-Ask where requests arrive, which details are required to review a job, who checks unclear messages, what follow-up wording fits the business, and what existing system should receive a reviewed record. Ask about data sensitivity, permissions, retention and expected volume before proposing live production use.
+## Use the application
 
-## What works versus additional implementation
+Open the product independently. Without a key, labeled prefilled samples and prepared results provide an interactive preview. Sample exports remain labeled fictional.
 
-Today: one-message draft organization, evidence, rules, edits, follow-up preparation and exports. When approved and configured: a genuine protected live extraction adapter. This initial example deployment is not evidence of live AI quality or production adoption.
+For genuine extraction, open Settings, read the processing/cost notice and connect your own OpenAI API key. Connecting checks syntax without a paid call and does not verify balance/model access. It clears sample work and starts an empty live workspace. The key stays only in tab memory and the transient HTTPS path through CPL's Worker to OpenAI, and clears on disconnect/reload. Requests charge your API account. Never request keys in chat, slides or email.
 
-Additional implementation could adapt fields, trade questions, branding and a reviewed handoff to a customer's existing system. This demo does not connect mailboxes or CRM, send messages, schedule work or replace human review. Use the verified CPL contact link for a discovery conversation; it does not carry the pasted message.
+With a funded key and working protections, paste a new authorized request, choose Organize request, inspect evidence/missing/conflict warnings and correct fields. Generate follow-up from current edits. Manual wording is protected before regeneration. Acknowledge review, change a field to demonstrate review invalidation, and export CSV, JSON, clipboard or print. Real exports contain current work without a demo watermark; unresolved and unreviewed warnings remain.
+
+A service/limit failure preserves input and never substitutes a sample. Consult VERIFICATION.md before describing actual live testing. Paid provider smoke is NOT RUN unless that record documents success.
+
+## Discovery and boundaries
+
+Ask where requests arrive, which details are required, who reviews them, what follow-up tone fits, and where exports should go. Discuss permissions, sensitivity, retention and volume before proposing stored records or integrations. Version one handles one request at a time. No mailboxes, sending, scheduling, technical diagnosis or replacement of human review. Do not invent accuracy, time savings, adoption or business results.

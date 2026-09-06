@@ -15,6 +15,12 @@ export const SECURITY_HEADERS: Record<string, string> = {
 export function secure(response: Response, api = false): Response {
   const headers = new Headers(response.headers);
   for (const [key, value] of Object.entries(SECURITY_HEADERS)) headers.set(key, value);
+  const devNonce = import.meta.env.DEV ? import.meta.env.CPL_DEV_CSP_NONCE : undefined;
+  if (!api && typeof devNonce === 'string' && /^[A-Za-z0-9+/]{32}$/.test(devNonce)) {
+    headers.set('Content-Security-Policy', SECURITY_HEADERS['Content-Security-Policy']
+      .replace("script-src 'self'", `script-src 'self' 'nonce-${devNonce}'`)
+      .replace("style-src 'self'", `style-src 'self' 'nonce-${devNonce}'`));
+  }
   if (api) {
     headers.set('Cache-Control', 'no-store, private, max-age=0');
     headers.set('Pragma', 'no-cache');
@@ -28,7 +34,7 @@ export function json(value: unknown, status = 200, extraHeaders: Record<string, 
 }
 
 export function errorResponse(error: unknown, requestId: string): Response {
-  const known = error instanceof ApiError ? error : new ApiError('INTERNAL_ERROR', 500, 'The request could not be completed. Your text is still available; please try an example.');
+  const known = error instanceof ApiError ? error : new ApiError('INTERNAL_ERROR', 500, 'The request could not be completed. Your text is still available. Please try again later.');
   return json({ error: { code: known.code, message: known.message, requestId } }, known.status, known.retryAfter ? { 'Retry-After': String(known.retryAfter) } : {});
 }
 

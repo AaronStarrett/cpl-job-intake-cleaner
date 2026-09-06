@@ -1,31 +1,33 @@
 # Verification record
 
-## Verified public release — 2026-09-06
+## Current implementation and local verification — 2026-09-06
 
-- Application: https://cpl-job-intake-cleaner.astarrett.workers.dev
-- Public repository: https://github.com/AaronStarrett/cpl-job-intake-cleaner — visibility PUBLIC, production branch main.
-- First successfully deployed source: `9d5d3ec8b15ac74e2c9e3b96754940dae404d3f6`.
-- Native Git-triggered Workers Build: `66e63a54-1e31-4ba2-8bbb-f38b5f6f7174`, completed successfully. GitHub's matching Workers Builds check also reports success.
-- Initial Worker version: `7026b2a7-1058-400a-a50d-03e07f05fdf4`.
-- Mode: example mode. No visitor account, provider credential, or paid AI call required.
+The current source implements a fictional sample workspace when no key is connected and a bring-your-own-key extraction workflow through Settings. The visitor's key stays in tab memory and is sent transiently through the same-origin Worker to OpenAI only when organizing a request. There is no environment-key or shared-key fallback, saved key, or saved job history. Connecting a key checks format only; a successful extraction establishes that key's access for that request.
 
-## Checks actually executed
+The complete local `npm run verify` gate passed for this implementation:
 
-- Clean `npm ci` using Node24.19.0 and the lockfile passed, with zero reported dependency vulnerabilities at installation time.
-- ESLint, TypeScript and production Vite/Worker build passed locally and within the successful native deployment gate.
-- 132/132 deterministic tests passed locally and in Cloudflare: 86 domain tests, 41 API/provider tests and five real workerd/SQLite tests. These cover evidence/schema validation, unsupported provider output, relative dates, conflicts, contacts, follow-ups, edits, review/fixture invalidation, CSV injection, quota concurrency/duplicates, protection failures and bounded deadlines. Provider calls are mocked.
-- 20/20 desktop/mobile Playwright tests passed locally and in Cloudflare before Wrangler deployment. They cover the sample-to-export/reset path, all six examples without AI requests, hostile text, draft overwrite protection, keyboard/reduced motion, responsive layout, automated accessibility checks, deep refresh, API JSON routing, memory isolation, print, clipboard and mocked uncertain-submission retry identity.
-- The same 20/20 tests passed against the actual workers.dev deployment in fresh anonymous browser contexts. The retry-identity test deliberately mocks provider/protection responses; it is not live-provider evidence.
-- Anonymous `/api/config` returned 200 JSON with `liveEnabled:false`, no secret values and `Cache-Control: no-store, max-age=0, private`. Unknown API routes return 404 JSON; the browser suite also verified assets, direct SPA routes, security headers and real example exports.
-- An actual public-app screenshot was captured using the fictional electrical fixture. Public portfolio and contact destinations resolve to the existing CPL Pages site.
-- Staged/current/history public-source scans and human file review passed before publication. No real customer records, credentials or unrelated private source were included.
+- ESLint and TypeScript checks: **PASS**.
+- 146 deterministic unit, Worker API/provider, and real workerd/SQLite runtime tests: **PASS**. Provider calls are mocked; these tests do not incur paid AI calls.
+- 30 desktop/mobile Playwright tests: **PASS**. Coverage includes sample/live separation, transient key connection, current edits and exports, source invalidation, failure handling, request deduplication, keyboard/reduced-motion behavior, and responsive accessibility checks. Live extraction responses are mocked where used.
+- Production Vite/Worker build and public-source scan: **PASS**.
 
-## Deployment gate and limits
+These results establish local implementation and deterministic behavior. They do not establish a paid provider request, extraction quality on unseen real customer data, or deployment of this revision.
 
-Native Builds watches main; non-production branch deployment and preview URLs are disabled. The production policy verifies native build context, branch, source commit and unchanged tracked files. The complete verification sequence runs before Wrangler in the same deployment command. The build token was created after explicit owner approval of its displayed scope. No account upgrade, new domain, DNS change or GitHub Actions workflow was introduced.
+## Protection configuration and prepublication snapshot
 
-Initial failed builds exposed missing Chromium OS dependencies and package indexes. They stopped before deployment. A bounded rootless browser setup resolved those environment requirements; the successful Git-triggered release above establishes actual execution of the gate.
+A Managed Turnstile widget has been configured in Cloudflare for the exact hostname `cpl-job-intake-cleaner.astarrett.workers.dev`. Encrypted `TURNSTILE_SECRET_KEY` and `QUOTA_HASH_SECRET` secrets have been configured through the Cloudflare dashboard. The source configuration now includes the corresponding public site key, expected hostname, origin allowlist, `ENABLE_LIVE_AI=true`, and the explicitly selected `gpt-6-astra` model. Secret values are not stored in this repository.
 
-## Live AI status
+At this prepublication verification snapshot, the new Git deployment was **NOT YET VERIFIED**. Dashboard configuration and a local passing gate do not prove that the latest source is serving at the public URL. The release handoff must record the successful native build, deployed source revision, and fresh anonymous application/configuration checks after deployment completes.
 
-Implemented but **not live-verified**. `ENABLE_LIVE_AI=false`. No dedicated provider key, Turnstile setup or live budget is supplied. No paid smoke test has been run. All six prepared examples operate without AI calls. Production live enablement requires the separately approved prerequisites documented in DEPLOYMENT.md. Automated checks do not establish live AI quality, customer adoption, business results or owner acceptance.
+- Application destination: https://cpl-job-intake-cleaner.astarrett.workers.dev
+- Public source: https://github.com/AaronStarrett/cpl-job-intake-cleaner
+
+Native Builds watches main; non-production branch deployment and preview URLs remain disabled. The production policy verifies native build context, branch, source commit, and unchanged tracked files. The full verification sequence runs before Wrangler in the deployment command. The bounded rootless browser setup supports Chromium checks in that environment.
+
+## Paid live-provider verification
+
+**NOT RUN.** No visitor OpenAI API key was supplied for verification, and no paid smoke test has been performed. The extraction adapter, protection configuration, and mocked tests are implemented evidence, not proof of a successful live provider response. The fictional samples and portfolio walkthrough make no provider calls. Visitor API usage, when requested with a valid connected key, belongs to that visitor's OpenAI API account.
+
+## Historical deployment baseline
+
+The earlier example-mode release was verified on 2026-09-06 at source `9d5d3ec8b15ac74e2c9e3b96754940dae404d3f6`, with native Git-triggered Workers Build `66e63a54-1e31-4ba2-8bbb-f38b5f6f7174` succeeding. That baseline passed 132 deterministic tests and 20 desktop/mobile browser tests; its public configuration reported live processing disabled. Those observations describe the earlier release only and do not verify the current bring-your-own-key deployment.

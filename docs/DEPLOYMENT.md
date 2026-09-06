@@ -1,50 +1,40 @@
 # Deployment
 
-## Current evidence
+The portfolio demonstrates; the application performs. Keep the existing public origin https://cpl-job-intake-cleaner.astarrett.workers.dev, Worker name, GitHub repository and native Git connection. See VERIFICATION.md for actual commits, builds, protection readiness and live-provider evidence.
 
-See `VERIFICATION.md` for the actual repository, running address, commit, successful checks and whether native Git deployment was observed. A local upload alone never proves auto-deployment.
+## Runtime and release gates
 
-Verified public deployment: https://cpl-job-intake-cleaner.astarrett.workers.dev. Native Git-triggered build `66e63a54-1e31-4ba2-8bbb-f38b5f6f7174` passed all 132 unit/Worker tests and 20 browser tests before deployment on 2026-09-06. Live AI remains disabled.
+Use Node24.19.0 and the committed npm lockfile. Cloudflare Vite1.54.4 and Wrangler4.129.0 package Miniflare5.20260903.0-alpha with workerd1.20260903.1; the test harness pins that same runtime. Preserve the SQLite Durable Object binding INTAKE_QUOTA, exported class IntakeQuota and migration v1. No new database, domain or plan is needed.
 
-## Runtime and build
+Native Workers Builds uses AaronStarrett/cpl-job-intake-cleaner, main, root /, NODE_VERSION=24.19.0 and CPL_DEPLOY_TARGET=production:
+- Build: `node scripts/builds-policy.mjs`
+- Deploy: `node scripts/cloudflare-build.mjs`
+- Non-production branch deployment remains disabled; previews receive no production protection secrets.
 
-Node24.19.0 and the committed npm lockfile are required. Current stable Cloudflare Vite1.54.4 and Wrangler4.129.0 both package Miniflare5.20260903.0-alpha internally with workerd1.20260903.1. The test harness pins that same engine to avoid mismatched local/deploy runtimes. This internal version label is a Cloudflare dependency choice; the application's public Vite integration and Wrangler releases are stable. Tests run the actual Workers runtime, including SQLite Durable Object concurrency.
+The policy validates native context, main branch, matching checked-out commit and clean tracked files. The existing bounded rootless Chromium setup uses authenticated build-local Ubuntu package indexes and reviewed library mappings, then runs the complete lint/type/unit/SQLite/build/browser/public-source gate before Wrangler. Do not bypass failures, hooks or browser checks. Do not add another GitHub Actions workflow.
 
-The single Worker name must be `cpl-job-intake-cleaner`. Wrangler defines `INTAKE_QUOTA`, exported class `IntakeQuota`, and migration `v1` with `new_sqlite_classes`. No D1, R2, paid database, VPS or account-plan change is needed. Assets pass through the Worker before SPA fallback so `/api/*` always receives JSON API handling and security headers.
+Local release uses `npm ci`, `npx playwright install chromium`, and `npm run deploy`. The pre-commit hook checks lint/types/tests/staged scan; pre-push runs full verify. Native Builds rejects E2E_BASE_URL so the gate tests its current local build. Separate anonymous browser verification can target the deployed origin using E2E_BASE_URL.
 
-## Native Cloudflare Workers Builds
+## Visitor key and protection setup
 
-Use the account's existing GitHub connection and the public `AaronStarrett/cpl-job-intake-cleaner` repository. Production branch: `main`. Root: `/`. Node version: `24.19.0`.
+Disconnected sessions show clearly fictional prefilled samples. Settings connects a visitor key for the current tab and clears sample work before real input. Connection validates syntax without a paid call; account/model access is tested by actual extraction. No CPL provider key or fallback is used.
 
-- Build command: `node scripts/builds-policy.mjs`
-- Deploy command: `node scripts/cloudflare-build.mjs`
-- Non-production branches: disable auto-deployment initially. If separately enabled, use sample-only configuration and never inject production secrets into untrusted pull-request builds.
+1. Keep the reviewed model gpt-6-astra explicit in OPENAI_MODEL. Do not silently substitute a model. Visitors need API project access and a suitable allowance; a coding subscription does not supply API credits.
+2. Configure a managed Turnstile widget for cpl-job-intake-cleaner.astarrett.workers.dev without pre-clearance. The app supplies action intake-analyze. Commit the public TURNSTILE_SITE_KEY, exact TURNSTILE_EXPECTED_HOSTNAME and ALLOWED_ORIGINS=https://cpl-job-intake-cleaner.astarrett.workers.dev so Git deployment preserves them.
+3. Set TURNSTILE_SECRET_KEY and a random QUOTA_HASH_SECRET of at least 32 characters through encrypted Worker runtime secrets or wrangler secret put. Never publish the values. Build tokens and runtime secrets are separate. Do not set a shared OPENAI_API_KEY; each request supplies the visitor's key separately from prompt content. It never enters quota metadata, storage, logs or returned records.
+4. Confirm INTAKE_QUOTA / IntakeQuota and limits: 5/client/hour, 50 reserved attempts/day, 2 concurrent, 8,000 input characters, 40,000 body bytes including credential, 6,000 output tokens, 25 seconds. Failed reserved provider calls consume allowance; existing hard upper bounds remain enforced.
+5. ENABLE_LIVE_AI=true enables the protected visitor-key path. /api/config reports safeguards readiness, not key validity or live-provider verification. Missing safeguards fail closed.
 
-Set the production build variable `CPL_DEPLOY_TARGET=production`. The deploy script verifies that native Workers Builds reports `WORKERS_CI=1`, branch `main`, and a commit matching clean checked-out source. The Cloudflare wrapper prepares Chromium and missing Ubuntu libraries inside ignored build-local directories without root access, then invokes the complete `npm run deploy:builds` gate with those library paths. These commands are sequential stages of the same native build. A failed typecheck, lint, unit/SQLite test, production build, Playwright test or source scan fails the build, preventing Wrangler deployment. Do not configure separately running tests as the only deployment gate. Set no GitHub Actions workflow for this project. No billable GitHub Actions are added.
+## Separate live verification
 
-Local release: `npm ci`, `npx playwright install chromium`, then `npm run deploy`. The script gates Wrangler behind full verification. `npm run deploy:builds` is an alternate single-command validation-and-deploy gate after Chromium installation.
+The owner requested all implementation except supplying the OpenAI key. No key or paid execution is inferred. Actual provider smoke is NOT RUN until a key owner authorizes two bounded synthetic requests. A mock response, connection form, healthy quota object or Turnstile alone is not live verification.
 
-The [Workers Builds image](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/) lacked Chromium accessibility/input libraries and package indexes during initial deployment. The checked-in wrapper uses the locked Playwright headless shell, a reviewed Ubuntu24.04 library mapping, authenticated build-local APT indexes, and archive extraction. It does not request root or disable browser validation. Unexpected libraries or an image change stop deployment for review. Browser packages and APT files remain in ignored `work/` directories and are not application assets.
+Enter the authorized key privately in app Settings. Submit a novel fictional request absent from the fixture list; check actual generated evidence, edits, follow-up and exports. Submit a second request with different contact/work/timing and verify corresponding output changes. Check limits without exposing keys or raw provider errors. Disconnect afterward. Screenshots use only synthetic job content and never keys. Record failures honestly; never replace them with samples or claim success.
 
-For an additional anonymous check of an existing deployment, set `E2E_BASE_URL` to its verified origin and run `npm run test:browser`. Clear that variable before local release verification. Native Builds explicitly rejects remote test targets so its gate always tests the current checkout.
+## Public verification and rollback
 
-## Initial example deployment
+Check anonymous root, assets, deep-link refresh, config/no-store, unknown API JSON404, fictional samples without paid calls, Settings/key clearing, edits/drafts/exports/New request, desktop/mobile/keyboard/reduced motion, and Help. Deterministic browser tests use nonfunctional synthetic keys and mocked provider results. Record the real Git-triggered branch/commit/build/deployment separately from app behavior. Verify the portfolio's distinct Watch walkthrough and Open Job Intake Cleaner links after its Pages build succeeds.
 
-Leave `ENABLE_LIVE_AI=false` and all secret values absent. Use the dashboard-reported workers.dev origin, verify anonymously before recording it, then set `PUBLIC_APP_URL` to that verified address. Existing portfolio and contact URLs are public-safe variables. Never put a speculative URL in the portfolio registry.
+Rollback through the existing Worker version history; disable the live path if safeguards are uncertain. Code rollback does not erase Durable Object migrations. Revert portfolio changes through normal commits and its existing Pages pipeline, never force-push or migrate hosting.
 
-## Optional live enablement, separately approved
-
-1. Obtain explicit cost authorization and a dedicated provider key. Never harvest keys from unrelated applications.
-2. Review the server model allowlist. The initial allowlist contains `gpt-6-astra`, verified in the current official OpenAI Structured Outputs documentation. There is deliberately no default model and no silent fallback. Model availability for this account is unverified until a bounded synthetic call succeeds.
-3. Configure a Turnstile widget for the exact production hostname and action `intake-analyze`. Add its public key, exact hostname and exact HTTPS origin to the nonsecret configuration.
-4. Set `OPENAI_API_KEY`, `TURNSTILE_SECRET_KEY`, and a random `QUOTA_HASH_SECRET` of at least32 characters using `wrangler secret put` or the Worker's encrypted secrets UI. Never put them in Wrangler vars, VITE variables, the browser, screenshots, source or build logs. Build-time credentials and Worker runtime secrets are separate.
-5. Confirm the SQLite binding and the configured limits. Defaults: 5/client/hour, 50 reserved requests/day, 2 concurrent, 8000 input characters, 40000 HTTP body bytes, 6000 output tokens, 25seconds. Failed reserved provider calls consume allowance. Changes to these upper bounds require code review.
-6. Set `OPENAI_MODEL` explicitly and `ENABLE_LIVE_AI=true`, run exactly one authorized synthetic smoke through real Turnstile and the browser, verify newly generated output, no secret exposure and quota accounting. If anything fails, return the flag to false. Do not claim live-verified from mocked tests.
-
-## Verification and rollback
-
-Check anonymous `/`, assets, a direct SPA path and refresh, `/api/config`, unknown `/api/*`404JSON, all six examples, edits/checks/drafts/downloads/reset, phone/mobile and back-to-portfolio navigation. Confirm no account wall. Record a real Git-triggered build's branch, commit, build result and deployment. Then verify the portfolio's external link in both directions after its separate Pages pipeline succeeds.
-
-Rollback through Cloudflare Workers deployment/version history to the last verified version, with live AI disabled if safeguards are uncertain. Durable Object migration changes need separate review: rolling back code does not erase SQLite migration history. Rollback the portfolio independently with a normal revert commit through its existing Pages pipeline; do not force-push or migrate hosting.
-
-Provider input/output tokens, Worker requests/CPU, Durable Object operations/storage, Turnstile availability and build minutes are cost/availability drivers. Request caps limit paid-model exposure, not the entire hosting bill. Do not upgrade plans or purchase credits without authorization.
+Request caps bound API exposure but do not guarantee hosting or provider charges. No plan upgrades or credit purchases without authorization.

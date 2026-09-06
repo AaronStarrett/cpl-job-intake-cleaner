@@ -1,4 +1,3 @@
-import { EXAMPLES } from './fixtures';
 import { type FieldKey, type JobRecord } from './schema';
 
 /** The caller retains the original extraction snapshot; returned edits never mutate it. */
@@ -18,7 +17,6 @@ export function updateField(record: JobRecord, key: FieldKey, value: string | nu
   };
 }
 export function setReview(record: JobRecord, reviewed: boolean): JobRecord { return { ...record, reviewed }; }
-export function fixtureMatches(id: string, source: string): boolean { return EXAMPLES.some((example) => example.id === id && example.source === source); }
 export function sourceChanged(previous: string, next: string): boolean { return previous !== next; }
 
 export interface IntakeState { source: string; record: JobRecord | null; original: JobRecord | null; draft: { subject: string; body: string } | null; reviewed: boolean }

@@ -1,8 +1,7 @@
 # Example only: copy to ignored .dev.vars for LOCAL development.
-# Public hosting remains example-only until approved dedicated secrets/budget exist.
+# Protection configuration only. Visitors connect their own OpenAI key in Settings.
 ENABLE_LIVE_AI=false
 OPENAI_MODEL=
-OPENAI_API_KEY=
 TURNSTILE_SITE_KEY=
 TURNSTILE_SECRET_KEY=
 TURNSTILE_EXPECTED_HOSTNAME=
