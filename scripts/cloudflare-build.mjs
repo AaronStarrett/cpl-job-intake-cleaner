@@ -40,6 +40,7 @@ export const LIBRARY_PACKAGES = Object.freeze({
   'libXdamage.so.1': 'libxdamage1',
   'libXext.so.6': 'libxext6',
   'libXfixes.so.3': 'libxfixes3',
+  'libXi.so.6': 'libxi6',
   'libxkbcommon.so.0': 'libxkbcommon0',
   'libXrandr.so.2': 'libxrandr2',
   'libXrender.so.1': 'libxrender1',
