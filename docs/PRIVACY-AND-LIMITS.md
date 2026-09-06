@@ -1,0 +1,11 @@
+# Privacy and limits
+
+This is a public demonstration. Use fictional or anonymized text. Examples are prepared sample data and never call AI. Live processing, when enabled, sends source text to OpenAI through the same-origin Worker. `store: false` is configured, but provider retention policies and infrastructure operational metadata retention still apply. This is not a zero-retention guarantee.
+
+Job content remains in browser memory and the transient processing path. The application does not put job content in localStorage, databases, analytics, request URLs or logs. The quota object retains only short-lived anti-abuse metadata and keyed client hashes. Exported files and clipboard copies are deliberately created on the visitor's device; the visitor manages their retention. Raw messages are omitted from exports. Short evidence excerpts remain in structured JSON to explain extracted fields.
+
+Every result is a draft. Source-matching evidence does not prove factual accuracy. Contact format checks do not establish reachability. Address checks do not verify location. Acknowledgment is an anonymous user action, not an identity check, signature, booking or approval of work. Urgency is customer wording, not technical triage. No diagnosis, estimate, availability or emergency-service commitment is produced.
+
+Default live limits: 8,000 characters, 40,000 body bytes, 6,000 output tokens, 25-second request duration, 5 requests/client/hour, 50 total reserved attempts/UTC day and 2 simultaneous provider calls. All are server enforced and bounded. A strict output schema may need most of the output allowance; truncation is an explicit error. No automatic provider retries. Limits reduce exposure but do not guarantee the total hosting bill, provider charges or denial-of-service resistance. Visitors may share network addresses and therefore quota.
+
+Version one processes one request at a time. Multiple independent jobs must be split manually. No persistent history, production customer accounts, sending, scheduling, CRM, file upload, OCR, audio, bulk imports or technical decisions. Production customer deployment needs separate discovery, permissions, authentication, retention and operational governance.

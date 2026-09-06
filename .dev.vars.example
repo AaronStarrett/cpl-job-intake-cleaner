@@ -1,0 +1,20 @@
+# Example only: copy to ignored .dev.vars for LOCAL development.
+# Public hosting remains example-only until approved dedicated secrets/budget exist.
+ENABLE_LIVE_AI=false
+OPENAI_MODEL=
+OPENAI_API_KEY=
+TURNSTILE_SITE_KEY=
+TURNSTILE_SECRET_KEY=
+TURNSTILE_EXPECTED_HOSTNAME=
+ALLOWED_ORIGINS=
+QUOTA_HASH_SECRET=
+MAX_INPUT_CHARS=8000
+MAX_BODY_BYTES=40000
+MAX_OUTPUT_TOKENS=6000
+REQUEST_TIMEOUT_MS=25000
+CLIENT_REQUESTS_PER_HOUR=5
+GLOBAL_DAILY_REQUEST_CAP=50
+MAX_CONCURRENT_REQUESTS=2
+PUBLIC_APP_URL=
+PORTFOLIO_URL=https://cpl-portfolio.pages.dev
+CONTACT_URL=https://cpl-portfolio.pages.dev/#contact

@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+npm run lint
+npm run typecheck
+npm test
+node scripts/security-check.mjs --staged
+git diff --cached --check
