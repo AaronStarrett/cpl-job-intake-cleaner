@@ -33,6 +33,7 @@ npm run deploy
 
 ## Links and handoff
 
+- [Open Job Intake Cleaner](https://cpl-job-intake-cleaner.astarrett.workers.dev) — public, no account, example mode.
 - [Public source](https://github.com/AaronStarrett/cpl-job-intake-cleaner)
 - [CPL portfolio](https://cpl-portfolio.pages.dev)
 - [Contact CPL](https://cpl-portfolio.pages.dev/#contact)

@@ -4,6 +4,8 @@
 
 See `VERIFICATION.md` for the actual repository, running address, commit, successful checks and whether native Git deployment was observed. A local upload alone never proves auto-deployment.
 
+Verified public deployment: https://cpl-job-intake-cleaner.astarrett.workers.dev. Native Git-triggered build `66e63a54-1e31-4ba2-8bbb-f38b5f6f7174` passed all 132 unit/Worker tests and 20 browser tests before deployment on 2026-09-06. Live AI remains disabled.
+
 ## Runtime and build
 
 Node24.19.0 and the committed npm lockfile are required. Current stable Cloudflare Vite1.54.4 and Wrangler4.129.0 both package Miniflare5.20260903.0-alpha internally with workerd1.20260903.1. The test harness pins that same engine to avoid mismatched local/deploy runtimes. This internal version label is a Cloudflare dependency choice; the application's public Vite integration and Wrangler releases are stable. Tests run the actual Workers runtime, including SQLite Durable Object concurrency.
@@ -21,6 +23,10 @@ Use the account's existing GitHub connection and the public `AaronStarrett/cpl-j
 Set the production build variable `CPL_DEPLOY_TARGET=production`. The deploy script verifies that native Workers Builds reports `WORKERS_CI=1`, branch `main`, and a commit matching clean checked-out source. The Cloudflare wrapper prepares Chromium and missing Ubuntu libraries inside ignored build-local directories without root access, then invokes the complete `npm run deploy:builds` gate with those library paths. These commands are sequential stages of the same native build. A failed typecheck, lint, unit/SQLite test, production build, Playwright test or source scan fails the build, preventing Wrangler deployment. Do not configure separately running tests as the only deployment gate. Set no GitHub Actions workflow for this project. No billable GitHub Actions are added.
 
 Local release: `npm ci`, `npx playwright install chromium`, then `npm run deploy`. The script gates Wrangler behind full verification. `npm run deploy:builds` is an alternate single-command validation-and-deploy gate after Chromium installation.
+
+The [Workers Builds image](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/) lacked Chromium accessibility/input libraries and package indexes during initial deployment. The checked-in wrapper uses the locked Playwright headless shell, a reviewed Ubuntu24.04 library mapping, authenticated build-local APT indexes, and archive extraction. It does not request root or disable browser validation. Unexpected libraries or an image change stop deployment for review. Browser packages and APT files remain in ignored `work/` directories and are not application assets.
+
+For an additional anonymous check of an existing deployment, set `E2E_BASE_URL` to its verified origin and run `npm run test:browser`. Clear that variable before local release verification. Native Builds explicitly rejects remote test targets so its gate always tests the current checkout.
 
 ## Initial example deployment
 
